@@ -163,11 +163,38 @@ node build.mjs ./deck/ --format pdf
 
 ---
 
+## 核心设计原则
+
+1. **不重发明轮子，用 deck 自身的 API** —— `B` 键切静态、`#nav .dot[i].click()` 跳页，都是 guizang 内建的，直接用。不模拟键盘（键盘事件容易被 SPA 吃掉），不靠私有 hook。
+2. **本地路径优先，自动起 server** —— 用户不用自己 host http server，skill 检测 `<base href>` 自己起，把 `<base href="/deck/">` 这类路径正确解析。
+3. **视觉还原优先于"可编辑性"** —— v0.1 是图片型，接受 trade-off 换 100% 视觉还原；可编辑混合版做 v0.2。
+4. **单文件主脚本** —— `build.mjs` 一个文件搞定截图 + PDF + PPTX，~200 行，不拆 helper。改起来直观。
+
+---
+
 ## Roadmap
 
-- **v0.1**（当前）：图片型 PPTX —— 视觉 100% 还原，文字不可编辑。
-- **v0.2**（规划中）：**混合型 PPTX** —— 背景截图 + 顶层可编辑文本框 + `<img>` 独立嵌入。文字可改、图可换。
-- **v0.3**（设想中）：**矢量 PDF 模式** —— 直接 `page.pdf()` 走打印通道，文字保持矢量（牺牲 WebGL 背景换可缩放无损）。
+### v0.1 · 图片型 PPTX（当前）
+视觉 100% 还原（含 WebGL 静帧），文字不可编辑。
+
+### v0.2 · 混合型 PPTX（规划中）
+**背景截图 + 顶层可编辑文本框 + `<img>` 独立嵌入。** 文字可改、图可换。
+
+实现思路：
+1. 临时把所有文字 CSS `color: transparent` 后截图当背景（layout 保留，文字不在像素里）
+2. 从 DOM 量每段文字：`getBoundingClientRect()` 取位置，`getComputedStyle()` 取字号 / 颜色 / 字重 / 字体
+3. PPTX 每页：背景 = 无字截图，顶层 = `slide.addText(...)` 可编辑文本框，位置 + 样式按 DOM 量
+4. `<img>` 元素 → 独立的 `slide.addImage(...)`，在 PPTX 里可拖动可换图
+
+接受的 trade-off：
+- WebGL 背景渐变 / 光斑 → 跟着背景图走（不可编辑）
+- 字体可能换（Google Fonts 在对方电脑可能没装）
+- 长段中文换行可能漂 ~1 字（WebKit 和 PowerPoint 断行算法不同）
+
+触发方式（v0.2 加）：`node build.mjs <input> --mode editable`
+
+### v0.3 · 矢量 PDF 模式（设想中）
+直接 `page.pdf()` 走打印通道，文字保持矢量（牺牲 WebGL 背景换可缩放无损）。
 
 ---
 
