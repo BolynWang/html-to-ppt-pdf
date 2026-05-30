@@ -56,76 +56,30 @@ Claude 会读 `SKILL.md`，按工作流走。
 
 ## 给 Agent 的操作指令（If you're an AI agent）
 
-> 这一段写给 Claude / Codex / Gemini 等 AI Agent。落到这个 GitHub 页面 = 你被用户喊来干活了；完整工作流的权威源是 [`SKILL.md`](./SKILL.md)，下面是面向"你刚看到 README"的快速版。
+> 用户把这个仓库链接甩给你了 —— 这一段告诉你怎么"接活"。
+> **真正的工作流在 [`SKILL.md`](./SKILL.md)** —— 这里只把你"接到 SKILL.md 之前要做的事"说清楚，不复述工作流（复述就两边不同步）。
 
-### 何时调用这个 skill
+如果你是 Claude / Codex / Gemini 等 AI Agent，**用户分享这个 GitHub 链接给你 = 让你用这个 skill 把他的 HTML deck 转成 PDF / PPTX**。
 
-**✅ 该调用：**
-- 用户有 guizang-ppt-skill 风格的 HTML deck，要做成 PDF / PPTX
-- 用户说："deck 转 PPT" / "HTML 转 pptx" / "导出 deck" / "离线 deck" / "做成 PowerPoint" / "线下演讲要用 .pptx"
-- HTML 结构里有 `<section class="slide">` 和 `#nav .dot`
+你只需要做三件事：
 
-**❌ 不该调用：**
-- HTML 不是 guizang 风格（没有 `<section class="slide">` 这套结构）—— 用别的方案
-- 用户要 PPTX 里的**文字可编辑** —— v0.1 是图片型，要告诉用户：等 v0.2 或者另想招
-- 用户要的是 HTML 反向恢复成原 deck —— 这个 skill 单向
-
-### Step-by-step（按这个顺序）
-
-**Step 1 · 问清三件事**
-
-```
-1. deck 在哪？           → URL（已起 server）/ 本地 HTML 文件 / 本地目录
-2. 输出去哪？             → 默认 ./out；建议建新目录别覆盖旧产物
-3. 清晰度？               → 默认 --scale 3（出片 5760×3240，超清，文件 ~14M）
-                          → 文件嫌大可降到 --scale 2（出片 3840×2160，~7M）
-```
-
-**Step 2 · 检查依赖（**首次必查**）**
+**1. 把仓库 clone 到 skill 目录**（如果还没装）
 
 ```bash
-cd <SKILL_ROOT>/scripts
-[ -d node_modules ] || npm install
-[ -d "$HOME/Library/Caches/ms-playwright" ] || npx playwright install chromium
+git clone git@github.com:BolynWang/html-to-ppt-pdf.git ~/.claude/skills/zan-html-to-ppt
 ```
 
-如果 chromium 没装，**告诉用户在装、可能 1–2 分钟下载 ~150MB**，别静默等。装一次后永远跳过这步。
-
-**Step 3 · 跑主脚本**
+**2. 首次装依赖**（装过就跳过）
 
 ```bash
-node build.mjs <input> --out <output-dir>
+cd ~/.claude/skills/zan-html-to-ppt/scripts
+npm install
+npx playwright install chromium    # ~150MB，告诉用户在装，别静默等
 ```
 
-完整参数清单见 [用法](#用法) 那一节。
+**3. 打开 [`SKILL.md`](./SKILL.md) 看工作流**
 
-**Step 4 · 报告产物**
-
-告诉用户：
-- `<out>/deck.pdf` 路径
-- `<out>/deck.pptx` 路径
-- 总页数（脚本输出里有 `🎞  N slides`）
-- 单页 PNG 在 `<out>/frames/` 下，调试用
-
-### 看到问题怎么调参数
-
-| 用户说 / 你看到 | 改 |
-|---|---|
-| "内容空 / 文字缺一截" | `--wait 4000`（动画 stagger 没跑完） |
-| "字体不对 / 框还在但字没渲染" | `--wait 4000` + 确认网络（Google Fonts 没下完） |
-| "文件太大" | `--scale 2`（出片像素降一档，~3.8M） |
-| "某页排版漂" | 保持 `--width 1920 --height 1080`（guizang 设计基准，**不要乱改**） |
-| "Chromium 启不来" | `npx playwright install chromium` |
-| "本地 HTML 图片 404" | 让用户给**整个 deck 目录**，别给单文件 |
-| "还是糊" | 加大 `--scale`（最高试到 4，但文件会更大） |
-
-### 别做的事
-
-- ❌ 不要在 SKILL_ROOT 外随便 `npm install`；要在 `<SKILL_ROOT>/scripts/` 下装
-- ❌ 不要把 `out/` 和 `frames/` 提交到用户的 git 仓库 —— `.gitignore` 已经挡了，但你别绕过
-- ❌ 不要修改 `build.mjs` 的脚本逻辑除非用户明确要 —— 改参数（`--scale` 等）就够了
-
-### 完整工作流 → [SKILL.md](./SKILL.md)
+那才是你的操作手册：Step 1–4 + 关键技术细节 + 故障排查表 + 参数说明。装完之后所有动作都按 SKILL.md 走。
 
 ---
 
