@@ -60,8 +60,9 @@ node build.mjs <url-or-path> --out <output-dir>
 |---|---|---|
 | `<input>` | 必填 | URL / 本地 HTML 文件 / 本地目录 |
 | `--out <dir>` | `./out` | 输出目录 |
-| `--width <px>` | `1920` | 截图宽 |
-| `--height <px>` | `1080` | 截图高 |
+| `--width <px>` | `1920` | CSS 视口宽（影响布局基准） |
+| `--height <px>` | `1080` | CSS 视口高 |
+| `--scale <n>` | `3` | **deviceScaleFactor**，控制清晰度。`3` 出片 5760×3240（超清，文件大）；糊就保持 3，文件嫌大降到 2 |
 | `--wait <ms>` | `2500` | 每页翻到后等动画跑完的毫秒数 |
 | `--format pdf,pptx` | 都出 | 输出格式（逗号分隔） |
 

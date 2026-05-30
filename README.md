@@ -54,6 +54,81 @@ Claude 会读 `SKILL.md`，按工作流走。
 
 ---
 
+## 给 Agent 的操作指令（If you're an AI agent）
+
+> 这一段写给 Claude / Codex / Gemini 等 AI Agent。落到这个 GitHub 页面 = 你被用户喊来干活了；完整工作流的权威源是 [`SKILL.md`](./SKILL.md)，下面是面向"你刚看到 README"的快速版。
+
+### 何时调用这个 skill
+
+**✅ 该调用：**
+- 用户有 guizang-ppt-skill 风格的 HTML deck，要做成 PDF / PPTX
+- 用户说："deck 转 PPT" / "HTML 转 pptx" / "导出 deck" / "离线 deck" / "做成 PowerPoint" / "线下演讲要用 .pptx"
+- HTML 结构里有 `<section class="slide">` 和 `#nav .dot`
+
+**❌ 不该调用：**
+- HTML 不是 guizang 风格（没有 `<section class="slide">` 这套结构）—— 用别的方案
+- 用户要 PPTX 里的**文字可编辑** —— v0.1 是图片型，要告诉用户：等 v0.2 或者另想招
+- 用户要的是 HTML 反向恢复成原 deck —— 这个 skill 单向
+
+### Step-by-step（按这个顺序）
+
+**Step 1 · 问清三件事**
+
+```
+1. deck 在哪？           → URL（已起 server）/ 本地 HTML 文件 / 本地目录
+2. 输出去哪？             → 默认 ./out；建议建新目录别覆盖旧产物
+3. 清晰度？               → 默认 --scale 3（出片 5760×3240，超清，文件 ~14M）
+                          → 文件嫌大可降到 --scale 2（出片 3840×2160，~7M）
+```
+
+**Step 2 · 检查依赖（**首次必查**）**
+
+```bash
+cd <SKILL_ROOT>/scripts
+[ -d node_modules ] || npm install
+[ -d "$HOME/Library/Caches/ms-playwright" ] || npx playwright install chromium
+```
+
+如果 chromium 没装，**告诉用户在装、可能 1–2 分钟下载 ~150MB**，别静默等。装一次后永远跳过这步。
+
+**Step 3 · 跑主脚本**
+
+```bash
+node build.mjs <input> --out <output-dir>
+```
+
+完整参数清单见 [用法](#用法) 那一节。
+
+**Step 4 · 报告产物**
+
+告诉用户：
+- `<out>/deck.pdf` 路径
+- `<out>/deck.pptx` 路径
+- 总页数（脚本输出里有 `🎞  N slides`）
+- 单页 PNG 在 `<out>/frames/` 下，调试用
+
+### 看到问题怎么调参数
+
+| 用户说 / 你看到 | 改 |
+|---|---|
+| "内容空 / 文字缺一截" | `--wait 4000`（动画 stagger 没跑完） |
+| "字体不对 / 框还在但字没渲染" | `--wait 4000` + 确认网络（Google Fonts 没下完） |
+| "文件太大" | `--scale 2`（出片像素降一档，~3.8M） |
+| "某页排版漂" | 保持 `--width 1920 --height 1080`（guizang 设计基准，**不要乱改**） |
+| "Chromium 启不来" | `npx playwright install chromium` |
+| "本地 HTML 图片 404" | 让用户给**整个 deck 目录**，别给单文件 |
+| "还是糊" | 加大 `--scale`（最高试到 4，但文件会更大） |
+
+### 别做的事
+
+- ❌ 不要在 SKILL_ROOT 外随便 `npm install`；要在 `<SKILL_ROOT>/scripts/` 下装
+- ❌ 不要把 `out/` 和 `frames/` 提交到用户的 git 仓库 —— `.gitignore` 已经挡了，但你别绕过
+- ❌ 不要修改 `build.mjs` 的脚本逻辑除非用户明确要 —— 改参数（`--scale` 等）就够了
+
+### 完整工作流 → [SKILL.md](./SKILL.md)
+
+---
+
 ## 用法
 
 ```bash
@@ -64,8 +139,9 @@ node build.mjs <url-or-path> [选项]
 |---|---|---|
 | `<input>` | 必填 | URL / 本地 HTML 文件 / 本地目录 |
 | `--out <dir>` | `./out` | 输出目录 |
-| `--width <px>` | `1920` | 截图宽 |
-| `--height <px>` | `1080` | 截图高 |
+| `--width <px>` | `1920` | CSS 视口宽（影响布局基准） |
+| `--height <px>` | `1080` | CSS 视口高 |
+| `--scale <n>` | `3` | **deviceScaleFactor**，控制清晰度。`3` 出片 5760×3240（超清，文件大）；糊就保持 3，文件嫌大降到 2 |
 | `--wait <ms>` | `2500` | 每页翻到后等动画跑完的毫秒数 |
 | `--format pdf,pptx` | 都出 | 输出格式（逗号分隔） |
 

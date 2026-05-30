@@ -2,7 +2,9 @@
 // build.mjs — Capture guizang HTML deck slide-by-slide and bundle into PDF + PPTX
 //
 // Usage:
-//   node build.mjs <url-or-path> [--out ./out] [--width 1920] [--height 1080] [--wait 2500] [--format pdf,pptx]
+//   node build.mjs <url-or-path> [--out ./out] [--width 1920] [--height 1080] [--scale 3] [--wait 2500] [--format pdf,pptx]
+//
+// --scale 控制清晰度:default 3 (5760×3240 物理像素,超清);糊就调到 3,文件嫌大可降到 2。
 //
 // Examples:
 //   node build.mjs http://localhost:8810/deck/
@@ -42,6 +44,7 @@ if (!input) {
 const outDir  = path.resolve(args.out || './out');
 const W       = +args.width  || 1920;
 const H       = +args.height || 1080;
+const scale   = +args.scale  || 3;       // deviceScaleFactor:3 = 出片像素 5760×3240(超清)
 const waitMs  = +args.wait   || 2500;
 const formats = String(args.format || 'pdf,pptx').split(',').map(s => s.trim());
 
@@ -111,7 +114,7 @@ if (!/^https?:\/\//.test(url)) {
 await fs.mkdir(outDir, { recursive: true });
 await fs.mkdir(path.join(outDir, 'frames'), { recursive: true });
 
-console.log(`📐  Viewport ${W}×${H}  · wait=${waitMs}ms · out=${outDir}`);
+console.log(`📐  Viewport ${W}×${H} · scale=${scale}× (出片 ${W*scale}×${H*scale}) · wait=${waitMs}ms · out=${outDir}`);
 
 // ---------- launch Chromium ----------
 const browser = await chromium.launch({
@@ -119,7 +122,7 @@ const browser = await chromium.launch({
 });
 const page = await browser.newPage({
   viewport: { width: W, height: H },
-  deviceScaleFactor: 1,
+  deviceScaleFactor: scale,
 });
 
 await page.goto(url, { waitUntil: 'networkidle', timeout: 45000 });
