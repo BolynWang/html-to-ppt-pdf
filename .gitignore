@@ -1,0 +1,17 @@
+# Node
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 构建产物(绝不推)
+out/
+frames/
+*.pdf
+*.pptx
+
+# Editor
+.vscode/
+.idea/
+*.swp
