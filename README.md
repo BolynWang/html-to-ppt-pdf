@@ -96,7 +96,7 @@ node build.mjs <url-or-path> [选项]
 | `--width <px>` | `1920` | CSS 视口宽（影响布局基准） |
 | `--height <px>` | `1080` | CSS 视口高 |
 | `--scale <n>` | `3` | **deviceScaleFactor**，控制清晰度。`3` 出片 5760×3240（超清，文件大）；糊就保持 3，文件嫌大降到 2 |
-| `--wait <ms>` | `2500` | 每页翻到后等动画跑完的毫秒数 |
+| `--wait <ms>` | `2500` | 每页 settle 的**上限**（不是固定睡这么久）。low-power 下动画被关，通常 ~300ms 截完；某页缺内容才调大 |
 | `--format pdf,pptx` | 都出 | 输出格式（逗号分隔） |
 
 例：
@@ -122,8 +122,8 @@ node build.mjs ./deck/ --format pdf
 1. **本地路径? → 起临时 http server**（按 HTML 里 `<base href="/X/">` 决定服务根，保证图片路径解析正确）
 2. **Playwright Chromium 1920×1080 打开**，等 `document.fonts.ready` + `networkidle` + 1.5s 让 WebGL 暖机
 3. **按 `B` 进静态模式**（guizang 内建快捷键 —— 关动效，保留 WebGL 背景静帧）
-4. **逐页**：`document.querySelectorAll('#nav .dot')[i].click()` 跳页 → 等 2.5s 让入场动画跑完 → 截图
-5. **拼装**：`pdf-lib` 拼 PDF；`pptxgenjs` 拼 PPTX（每页 `slide.addImage` 满版背景）
+4. **逐页**：`document.querySelectorAll('#nav .dot')[i].click()` 跳页 → 轮询 `getAnimations()` 到动画停（low-power 下几乎立刻，封顶 `--wait`）→ 截图。某页失败只记下页码继续，不拖垮整轮
+5. **拼装**：`pdf-lib` 拼 PDF；`pptxgenjs` 拼 PPTX（每页 `slide.addImage` 满版背景，版面长宽比按 `--width/--height` 推导，非 16:9 也不变形）
 
 ---
 

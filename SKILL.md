@@ -52,7 +52,7 @@ node <SKILL_ROOT>/scripts/build.mjs <input> --out <output-dir>
 | `--width <px>` | `1920` | CSS 视口宽（影响布局基准） |
 | `--height <px>` | `1080` | CSS 视口高 |
 | `--scale <n>` | `3` | deviceScaleFactor。`3` 出片 5760×3240（超清）；糊就保持 3，文件嫌大降到 2 |
-| `--wait <ms>` | `2500` | 每页翻到后等动画跑完的毫秒数 |
+| `--wait <ms>` | `2500` | 每页 settle 的**上限**(不是固定睡这么久)。low-power 下入场动画被关,通常 ~300ms 就截完;只有动画/字体没跑完才会等到这个上限。某页缺内容就调大 |
 | `--format pdf,pptx` | 都出 | 输出格式（逗号分隔） |
 
 成功输出长这样：
@@ -108,9 +108,11 @@ node <SKILL_ROOT>/scripts/build.mjs /Users/X/web/deck/index.html --out ~/Downloa
 1. **本地路径如何变 URL**：`build.mjs` 检测 HTML 里的 `<base href="/X/">`，从 fileDir 向上走 X 一级当服务根（例 `<base href="/deck/">` → 服务 deck 父级，URL = `/deck/`）。这样图片路径才解析得对。
 2. **静态模式**：打开 deck 后按 `B`（guizang 内建快捷键）关动效，WebGL 背景仍保留一帧。
 3. **逐页跳转**：`document.querySelectorAll('#nav .dot')[i].click()` —— 用 deck 自身的导航点，**不模拟键盘**（键盘事件容易被 SPA 吃掉）。
-4. **截图前等待**：翻页后等 `--wait`（默认 2.5s）让入场动画 stagger 跑完，否则后段文字会缺。
+4. **截图前等待（动画感知）**：翻页后先给 150ms 让过渡注册，再**轮询 `document.getAnimations()` 到没有 running 动画**才截，封顶 `--wait`。low-power 下入场动画被关 → 几乎立刻返回（每页 ~300ms，不再死等 2.5s）；只有动画/字体真没跑完才会等到上限。
 5. **fonts.ready**：打开页面后等 `document.fonts.ready` + `networkidle` + 1.5s 给 WebGL 暖机，字体才渲染对。
 6. **deviceScaleFactor**：默认 3（Retina 级），是治糊的关键。1× 在 Retina/投影/PowerPoint 渲染都会显得软。
+7. **单页失败不致命**：每页截图独立 try/catch，某页报错（超时 / DOM 异常 / 写盘失败）只记下页码继续，末尾汇总 `⚠️ N/M 失败：[...]`，已成功的页照常拼进 PDF/PPTX；全失败才退出。
+8. **PPTX 长宽比跟视口走**：PPTX 版面由 `--width/--height` 比例推导（高 7.5in × W/H），16:9 仍是 13.333×7.5，但 4:3 / 方形 / 竖版 deck 也不会被拉变形。
 
 ## 故障排查
 
